@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  inventory-frontend:
+      container_name: frontend-container
+      restart: always
+      build:
+        context: ./inventory-frontend
+      ports:
+        - "3000:3000"
+      depends_on:
+        - inventory-backend
+      volumes:
+        - ./inventory-frontend:/app
+        - /app/node_modules
+  inventory-backend:
+    container_name: backend-container
+    restart: always
+    build: 
+      context: ./inventory-backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/inventorymanagement
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+    depends_on:
+      - db
+    networks:
+      - inventory-network
+
+  db:
+    container_name: db-container
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: inventorymanagement
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inventorymanagement"]
+      interval: 10s
+      retries: 5
+    ports:
+      - "5432:5432"
+    networks:
+      - inventory-network
+
+volumes:
+  db-data:
+
+networks:
+  inventory-network:
